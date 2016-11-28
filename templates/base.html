@@ -1,0 +1,8 @@
+<!doctype html>
+<title>Raspberry Pi Video Service</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+{% block js_block %} {% endblock %}
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<div class=page>
+  {% block body %}{% endblock %}
+</div>

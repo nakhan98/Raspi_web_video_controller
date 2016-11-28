@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block js_block %}
+<script>
+$(document).ready(function() {
+    show_blinking_prompt();
+    send_key_presses();
+    send_omx_commands();
+});
+
+var pid = {{pid|safe}};
+console.log("pid of process is: " + pid);
+
+var console_text = "Omxplayer"
+
+function show_blinking_prompt() {
+    $("#video_prompt").fadeOut('slow', function(){
+        $(this).fadeIn('slow', function(){
+            show_blinking_prompt(this);
+        });
+    });
+}
+
+/* Send key presses to omxplayer */
+function send_key_presses() {
+    $(document).on('keydown', function(e) {
+    //$("#omx_input").on('keydown', function(e) {
+        console.log("Pressed: " + e.which);
+        $.ajax({
+            type: "POST",
+            url: "/ajax/omx_char",
+            data: JSON.stringify({"keypress": e.which, "pid": pid}),
+            success:function(data) {
+                console.log("status: " + data.error);
+                if (data.error) {
+                    alert(data.error);
+                }
+            },
+            contentType: "application/json",
+            dataType: "json"
+        });
+    });
+}
+
+function send_omx_commands() {
+    $(".omx_controls").click(function(e) {
+        var cmd = $(this).attr("href");
+        console.log("send_omx_commands: clicked: " + cmd);
+        $.ajax({
+            type: "POST",
+            url: "/ajax/omxplayer_cmd",
+            data: JSON.stringify({"command": cmd, "pid": pid}),
+            success:function(data) {
+                console.log("status: " + data.error);
+                if (data.error) {
+                    alert(data.error);
+                }
+            },
+            contentType: "application/json",
+            dataType: "json"
+        });
+    });
+}
+</script>
+{% endblock %}
+{% block body %}
+<h1>Playing video - {{video_file}}</h1>
+<br />
+<div id="video_prompt">Omxplayer:</div>
+<br />
+<h2>Omxplayer controls</h2>
+<ul>
+<li><a class="omx_controls" href="#decrease_speed">decrease speed</a></li>
+<li><a class="omx_controls" href="#increase_speed">increase speed</a></li>
+<li><a class="omx_controls" href="#rewind">rewind</a></li>
+<li><a class="omx_controls" href="#fast_foward">fast forward</a></li>
+<li><a class="omx_controls" href="#show_info">show info</a></li>
+<li><a class="omx_controls" href="#previous_audio_stream">previous audio stream</a></li>
+<li><a class="omx_controls" href="#next_audio_stream">next audio stream</a></li>
+<li><a class="omx_controls" href="#previous_chapter">previous chapter</a></li>
+<li><a class="omx_controls" href="#next_chapter">next chapeter</a></li>
+<li><a class="omx_controls" href="#previous_subtitle_stream">previous subtitile stream</a></li>
+<li><a class="omx_controls" href="#next_subtitle_stream">next subtitle stream</a></li>
+<li><a class="omx_controls" href="#toggle_subtitles">toggle subtitles</a></li>
+<li><a class="omx_controls" href="#show_subtitles">show subtitles</a></li>
+<li><a class="omx_controls" href="#hide_subtitles">hide subtitles</a></li>
+<li><a class="omx_controls" href="#decrease_subtitle_delay">decrease subtitle delay</a></li>
+<li><a class="omx_controls" href="#increase_subtitle_delay">increase subtitle delay</a></li>
+<li><a class="omx_controls" href="#exit_omxplayer">exit omx player</a></li>
+<li><a class="omx_controls" href="#pause_resume_1">pause/resume</a></li>
+<li><a class="omx_controls" href="#decrease_volume">decrease volume</a></li>
+<li><a class="omx_controls" href="#increase_volume_1">increase volume</a></li>
+<li><a class="omx_controls" href="#left_arrow">seek -30 seconds</a></li>
+<li><a class="omx_controls" href="#right_arrow">seek +30 seconds</a></li>
+<li><a class="omx_controls" href="#down_arrow">seek -600 seconds</a></li>
+<li><a class="omx_controls" href="#up_arrow">seek +600 seconds</a></li>
+</ul>
+<br />
+<input id="omx_input" type="text" name="search">
+
+</div>
+{% endblock %}
+
