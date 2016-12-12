@@ -20,7 +20,7 @@ import pdb
 import os.path
 from time import sleep
 from flask import Flask, url_for, render_template, jsonify, request
-from helpers import (threaded_search_files, search_vids, logging, JOBS,
+from helpers import (load_and_reindex_videos, search_vids, logging, JOBS,
                      play_video, OMX_MAPPINGS)
 
 APP = Flask(__name__)
@@ -31,7 +31,7 @@ def index():
     return render_template("search_page.html")
 
 
-@APP.route("/search/<search>")
+@APP.route("/ajax/search/<search>")
 def search_file(search):
     results = search_vids(search)
     return jsonify(
@@ -53,9 +53,9 @@ def vid_details(encoded_video_path):
         logging.debug("waiting for omxplayer process...")
         sleep(1)
     pid = JOBS[-1]["proc"].pid
-    video_file = os.path.abspath(JOBS[-1]["video_path"])
-    return render_template("video_play.html", video_file=video_file,
-                           pid=pid)
+    video_file = os.path.basename(JOBS[-1]["video_path"])
+    return render_template("video_play.html", video_path=video_path,
+                           video_file=video_file, pid=pid)
 
 
 @APP.route("/ajax/omx_char", methods=['POST'])
@@ -89,6 +89,6 @@ def control_omx():
 
 
 if __name__ == '__main__':
-    t1 = threading.Thread(target=threaded_search_files)
+    t1 = threading.Thread(target=load_and_reindex_videos)
     t1.start()
     APP.run(host='0.0.0.0', port=8080, debug=True)

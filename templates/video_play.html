@@ -64,9 +64,10 @@ function send_omx_commands() {
 </script>
 {% endblock %}
 {% block body %}
-<h1>Playing video - {{video_file}}</h1>
+<h2>Playing video - {{video_file}}</h2>
 <br />
-<div id="video_prompt">Omxplayer:</div>
+<!--div id="video_prompt">Omxplayer:</div-->
+<p> Full path - {{video_path}}
 <br />
 <h2>Omxplayer controls</h2>
 <ul>
@@ -97,7 +98,9 @@ function send_omx_commands() {
 </ul>
 <br />
 <input id="omx_input" type="text" name="search">
+<br />
+<br />
+<a href="/">Go back to search</a>
 
-</div>
 {% endblock %}
 

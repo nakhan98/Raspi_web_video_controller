@@ -9,6 +9,7 @@ import subprocess
 import pdb
 from time import sleep
 from shlex import split as sh_split
+from threading import Lock
 
 logging.basicConfig(format='%(asctime)s %(funcName)s: %(message)s',
                     level=logging.DEBUG,
@@ -30,11 +31,15 @@ RESTRICTED_DIRS = (
 
 FILE_TYPES = ("avi", "mkv", "mp4", "wmv")
 
-WAIT_DURATION = 3600
+WAIT_DURATION = 120
 
 # Global variable which contains process of video being played
 # Should this be a list?
 JOBS = []
+
+# Mutex
+PLAY_VID_MUTEX = Lock()
+SEARCH_VIDS_MUTEX = Lock()
 
 # Omxplayer commands
 OMX_MAPPINGS = (
@@ -85,8 +90,8 @@ def play_video(video_path):
         logging.warning("omxplayer already running...")
 
 
-def get_file_paths():
-    """Get list of files in DIRECTORIES"""
+def index_videos():
+    """Get list of files in DIRECTORIES (exclude paths in RESTRICTED_DIRS)"""
     logging.debug("preparing to search DIRECTORIES:\n%s",
                   DIRECTORIES)
     file_paths = []
@@ -122,14 +127,39 @@ def is_video_file(filename):
 
 
 def load_video_list_from_json():
+    """
+    load list of videos from STORE_FILE and assign to VIDEOS
+    """
     global VIDEOS
+    SEARCH_VIDS_MUTEX.acquire()
     logging.debug("loading videos from STORE_FILE")
     with open(STORE_FILE) as sf:
         VIDEOS = json.load(sf)["videos"]
         logging.debug("loaded %d videos", len(VIDEOS))
+    SEARCH_VIDS_MUTEX.release()
 
 
-def threaded_search_files():
+def save_list_of_videos():
+    """
+    Index videos and then assign to VIDEOS
+    """
+    global VIDEOS
+    SEARCH_VIDS_MUTEX.acquire()
+    logging.debug("Preparing to index video files")
+    file_paths = index_videos()
+    logging.debug("Saving files to json store")
+    with open(STORE_FILE, "wt") as fh:
+        json.dump({"videos": file_paths}, fh)
+    VIDEOS = file_paths
+    logging.debug("Finished indexing.")
+    SEARCH_VIDS_MUTEX.release()
+
+
+def load_and_reindex_videos():
+    """
+    Load list of videos from STORE_FILE and then periodically re-index
+    DIRECTORIES. Expected to be run in a separate thread.
+    """
     try:
         load_video_list_from_json()
     except IOError:
@@ -148,18 +178,36 @@ def threaded_search_files():
             save_list_of_videos()
 
 
-def save_list_of_videos():
-    global VIDEOS
-    logging.debug("Preparing to search files")
-    file_paths = get_file_paths()
-    logging.debug("Saving files to json store")
-    pdb.set_trace()
-    with open(STORE_FILE, "wt") as fh:
-        json.dump({"videos": file_paths}, fh)
-    VIDEOS = file_paths
+def find_matches(search_term):
+    """
+    Find matches for search_term in VIDEOS (use for debugging problematic
+    files)
+    """
+    matches = []
+    search_term_upper = search_term.upper()
+    for video in VIDEOS:
+        try:
+            video_upper = video.upper()
+        except Exception as err:
+            logging.warning("Error encountered when dealing with: %s",
+                            video)
+            raise err
+        else:
+            if search_term_upper in video_upper:
+                matches.append(video)
+
+    return matches
 
 
 def search_vids(search_term):
     """Search for video in VIDEOS"""
     logging.debug("searching for %s", search_term)
-    return [i for i in VIDEOS if search_term.upper() in i.upper()][:100]
+    try:
+        # search_results = [i for i in VIDEOS if search_term.upper() in
+                            # i.upper()][:100]
+        search_results = find_matches(search_term)
+    except Exception as err:
+        logging.warning("%s", err)
+        search_results = []
+    finally:
+        return search_results
