@@ -10,28 +10,15 @@ import pdb
 from time import sleep
 from shlex import split as sh_split
 from threading import Lock
+from settings import (STORE_FILE, PLAY_CMD, DIRECTORIES, RESTRICTED_DIRS,
+                      FILE_TYPES, WAIT_DURATION)
 
 logging.basicConfig(format='%(asctime)s %(funcName)s: %(message)s',
                     level=logging.DEBUG,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
-STORE_FILE = "videos.json"
 
 VIDEOS = []
-
-PLAY_CMD = "omxplayer -o  hdmi -r \"{video}\""
-
-DIRECTORIES = (
-    # "/home/pi/Downloads/Videos",
-)
-
-RESTRICTED_DIRS = (
-    # "/home/pi/Downloads/Videos/Samples",
-)
-
-FILE_TYPES = ("avi", "mkv", "mp4", "wmv")
-
-WAIT_DURATION = 120
 
 # Global variable which contains process of video being played
 # Should this be a list?
@@ -178,36 +165,15 @@ def load_and_reindex_videos():
             save_list_of_videos()
 
 
-def find_matches(search_term):
-    """
-    Find matches for search_term in VIDEOS (use for debugging problematic
-    files)
-    """
-    matches = []
-    search_term_upper = search_term.upper()
-    for video in VIDEOS:
-        try:
-            video_upper = video.upper()
-        except Exception as err:
-            logging.warning("Error encountered when dealing with: %s",
-                            video)
-            raise err
-        else:
-            if search_term_upper in video_upper:
-                matches.append(video)
-
-    return matches
-
-
 def search_vids(search_term):
     """Search for video in VIDEOS"""
     logging.debug("searching for %s", search_term)
     try:
-        # search_results = [i for i in VIDEOS if search_term.upper() in
-                            # i.upper()][:100]
-        search_results = find_matches(search_term)
+        search_results = [i for i in VIDEOS if search_term.upper() in
+                          i.upper()][:100]
+        # search_results = find_matches(search_term)
     except Exception as err:
-        logging.warning("%s", err)
+        logging.warning("error occurred: %s", err)
         search_results = []
     finally:
         return search_results
